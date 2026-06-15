@@ -1,0 +1,14 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "uZ-GtDGYEA7q4x6pkQUDK"
+uri = "file://artifacts/mobile/assets/images/icon.png"
+type = "image"
+title = "viasetu app icon"
+
+[[generated]]
+id = "45jf3PYP35dxE5LdjReGN"
+uri = "file://artifacts/mobile/assets/images/splash-icon.png"
+type = "image"
+title = "viasetu splash icon"

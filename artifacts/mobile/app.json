@@ -1,0 +1,96 @@
+{
+  "expo": {
+    "name": "ViaSetu",
+    "slug": "mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "viasetu",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.viasetu.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "ViaSetu needs camera access for capturing photos during file uploads.",
+        "NSLocationWhenInUseUsageDescription": "ViaSetu uses your location for delivery tracking and logistics.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "ViaSetu uses your location for delivery tracking and logistics.",
+        "NSMicrophoneUsageDescription": "ViaSetu needs microphone access for voice-related features.",
+        "NSPhotoLibraryUsageDescription": "ViaSetu needs access to your photo library for file uploads."
+      }
+    },
+    "android": {
+      "package": "com.viasetu.app",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/icon.png",
+        "backgroundColor": "#1A56DB"
+      },
+      "permissions": [
+        "android.permission.INTERNET",
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.ACCESS_WIFI_STATE",
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.DOWNLOAD_WITHOUT_NOTIFICATION",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO",
+        "android.permission.READ_MEDIA_AUDIO",
+        "android.permission.VIBRATE",
+        "android.permission.RECEIVE_BOOT_COMPLETED"
+      ],
+      "googleServicesFile": null
+    },
+    "web": {
+      "favicon": "./assets/images/icon.png"
+    },
+    "plugins": [
+      [
+        "expo-router",
+        {
+          "origin": "https://replit.com/"
+        }
+      ],
+      "expo-font",
+      "expo-web-browser",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "ViaSetu uses your location for delivery tracking and logistics.",
+          "locationWhenInUsePermission": "ViaSetu uses your location for delivery tracking and logistics."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#1A56DB",
+          "androidMode": "default",
+          "androidCollapsedTitle": "ViaSetu",
+          "iosDisplayInForeground": true
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "ViaSetu needs access to your photos for file uploads.",
+          "cameraPermission": "ViaSetu needs camera access for capturing photos."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}
