@@ -24,14 +24,43 @@ import { WebView } from "react-native-webview";
 const VIASETU_URL = "https://www.viasetu.com";
 const PRIMARY = "#1A56DB";
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
+const SPLASH_TIMEOUT_MS = 15000;
 
-const INJECTED_JS = `
-(function() {
-  true;
-})();
-`;
+const INJECTED_JS = `(function(){true;})();`;
 
+// ─── Web fallback ────────────────────────────────────────────────────────────
+// react-native-webview has no web implementation; use a plain iframe in the
+// Expo web preview so the splash screen does not stay frozen forever.
+function WebFallback() {
+  const insets = useSafeAreaInsets();
+  return (
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+      {/* @ts-ignore – iframe is web-only */}
+      <iframe
+        src={VIASETU_URL}
+        title="ViaSetu"
+        allow="geolocation; camera; microphone"
+        style={{
+          flex: 1,
+          border: "none",
+          width: "100%",
+          height: "100%",
+          display: "flex",
+        }}
+      />
+    </View>
+  );
+}
+
+// ─── Main screen ─────────────────────────────────────────────────────────────
 export default function WebViewScreen() {
+  if (Platform.OS === "web") return <WebFallback />;
+
+  return <NativeWebView />;
+}
+
+function NativeWebView() {
   const webViewRef = useRef<WebView>(null);
   const insets = useSafeAreaInsets();
   const backPressRef = useRef(0);
@@ -42,24 +71,17 @@ export default function WebViewScreen() {
   const [hasError, setHasError] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  // ── Permissions + notification channel ──────────────────────────────────
   useEffect(() => {
     requestPermissions();
     setupNotificationChannel();
   }, []);
 
   const requestPermissions = async () => {
-    try {
-      await Location.requestForegroundPermissionsAsync();
-    } catch {}
-    try {
-      await ImagePicker.requestCameraPermissionsAsync();
-    } catch {}
-    try {
-      await ImagePicker.requestMediaLibraryPermissionsAsync();
-    } catch {}
-    try {
-      await Notifications.requestPermissionsAsync();
-    } catch {}
+    try { await Location.requestForegroundPermissionsAsync(); } catch {}
+    try { await ImagePicker.requestCameraPermissionsAsync(); } catch {}
+    try { await ImagePicker.requestMediaLibraryPermissionsAsync(); } catch {}
+    try { await Notifications.requestPermissionsAsync(); } catch {}
   };
 
   const setupNotificationChannel = async () => {
@@ -76,6 +98,15 @@ export default function WebViewScreen() {
     } catch {}
   };
 
+  // ── Safety timeout: clear splash if WebView stalls ──────────────────────
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsInitialLoad(false);
+    }, SPLASH_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // ── Android hardware back button ─────────────────────────────────────────
   useEffect(() => {
     if (Platform.OS !== "android") return;
     const subscription = BackHandler.addEventListener(
@@ -88,9 +119,7 @@ export default function WebViewScreen() {
         if (backPressRef.current === 0) {
           backPressRef.current = 1;
           ToastAndroid.show("Press back again to exit", ToastAndroid.SHORT);
-          setTimeout(() => {
-            backPressRef.current = 0;
-          }, 2000);
+          setTimeout(() => { backPressRef.current = 0; }, 2000);
           return true;
         }
         return false;
@@ -99,6 +128,7 @@ export default function WebViewScreen() {
     return () => subscription.remove();
   }, [canGoBack]);
 
+  // ── Handlers ─────────────────────────────────────────────────────────────
   const handleRefresh = useCallback(() => {
     setIsRefreshing(true);
     setHasError(false);
@@ -124,33 +154,37 @@ export default function WebViewScreen() {
     setIsInitialLoad(false);
   }, []);
 
-  const handleNavigationChange = useCallback((navState: { canGoBack: boolean }) => {
-    setCanGoBack(navState.canGoBack);
-  }, []);
-
-  const handleShouldStartLoad = useCallback(
-    (request: { url: string }) => {
-      const { url } = request;
-      if (
-        url.startsWith("about:") ||
-        url.startsWith("data:") ||
-        url.startsWith("blob:") ||
-        url.includes("viasetu.com")
-      ) {
-        return true;
-      }
-      if (url.startsWith("tel:") || url.startsWith("mailto:") || url.startsWith("whatsapp:")) {
-        Linking.openURL(url).catch(() => {});
-        return false;
-      }
-      if (url.startsWith("http://") || url.startsWith("https://")) {
-        Linking.openURL(url).catch(() => {});
-        return false;
-      }
-      return true;
+  const handleNavigationChange = useCallback(
+    (navState: { canGoBack: boolean }) => {
+      setCanGoBack(navState.canGoBack);
     },
     []
   );
+
+  const handleShouldStartLoad = useCallback((request: { url: string }) => {
+    const { url } = request;
+    if (
+      url.startsWith("about:") ||
+      url.startsWith("data:") ||
+      url.startsWith("blob:") ||
+      url.includes("viasetu.com")
+    ) {
+      return true;
+    }
+    if (
+      url.startsWith("tel:") ||
+      url.startsWith("mailto:") ||
+      url.startsWith("whatsapp:")
+    ) {
+      Linking.openURL(url).catch(() => {});
+      return false;
+    }
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+      Linking.openURL(url).catch(() => {});
+      return false;
+    }
+    return true;
+  }, []);
 
   const handleFileDownload = useCallback(
     ({ nativeEvent }: { nativeEvent: { downloadUrl: string } }) => {
@@ -161,6 +195,7 @@ export default function WebViewScreen() {
     []
   );
 
+  // ── No-internet screen ───────────────────────────────────────────────────
   if (hasError) {
     return (
       <View style={[styles.errorContainer, { paddingTop: insets.top }]}>
@@ -187,6 +222,7 @@ export default function WebViewScreen() {
     );
   }
 
+  // ── Main view ────────────────────────────────────────────────────────────
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
@@ -233,10 +269,10 @@ export default function WebViewScreen() {
           onFileDownload={handleFileDownload}
           userAgent="Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
           renderToHardwareTextureAndroid={true}
-          androidLayerType="hardware"
         />
       </ScrollView>
 
+      {/* Splash overlay – shown on first load, hidden once WebView fires onLoadEnd */}
       {isInitialLoad && (
         <View style={styles.splashOverlay}>
           <Image
@@ -253,8 +289,9 @@ export default function WebViewScreen() {
         </View>
       )}
 
+      {/* Small activity indicator for subsequent page loads */}
       {isLoading && !isInitialLoad && !isRefreshing && (
-        <View style={styles.miniLoader} pointerEvents="none">
+        <View style={[styles.miniLoader, { pointerEvents: "none" }]}>
           <ActivityIndicator size="small" color={PRIMARY} />
         </View>
       )}
