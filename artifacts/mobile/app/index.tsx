@@ -20,6 +20,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
+import { SplashLoader } from "@/components/SplashLoader";
 
 const VIASETU_URL = "https://www.viasetu.com";
 const PRIMARY = "#1A56DB";
@@ -272,22 +273,8 @@ function NativeWebView() {
         />
       </ScrollView>
 
-      {/* Splash overlay – shown on first load, hidden once WebView fires onLoadEnd */}
-      {isInitialLoad && (
-        <View style={styles.splashOverlay}>
-          <Image
-            source={require("../assets/images/splash-icon.png")}
-            style={styles.splashLogo}
-            contentFit="contain"
-          />
-          <ActivityIndicator
-            size="large"
-            color={PRIMARY}
-            style={styles.splashSpinner}
-          />
-          <Text style={styles.splashText}>Loading ViaSetu...</Text>
-        </View>
-      )}
+      {/* Animated splash screen — fades out once WebView fires onLoadEnd */}
+      <SplashLoader visible={isInitialLoad} />
 
       {/* Small activity indicator for subsequent page loads */}
       {isLoading && !isInitialLoad && !isRefreshing && (
@@ -352,26 +339,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     fontFamily: "Inter_600SemiBold",
-  },
-  splashOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "#ffffff",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 100,
-  },
-  splashLogo: {
-    width: 140,
-    height: 140,
-  },
-  splashSpinner: {
-    marginTop: 36,
-  },
-  splashText: {
-    marginTop: 16,
-    fontSize: 15,
-    color: "#6b7280",
-    fontFamily: "Inter_400Regular",
   },
   miniLoader: {
     position: "absolute",
