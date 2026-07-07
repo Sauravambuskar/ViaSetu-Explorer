@@ -56,7 +56,8 @@
     "zod-validation-error": "^3.4.0"
   },
   "dependencies": {
-    "expo-notifications": "~0.32.17",
+    "onesignal-expo-plugin": "^2.7.0",
+    "react-native-onesignal": "^5.5.3",
     "react-native-webview": "^13.16.1"
   }
 }

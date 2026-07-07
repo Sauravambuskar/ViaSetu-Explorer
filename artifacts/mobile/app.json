@@ -16,21 +16,26 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.viasetu.app",
+      "buildNumber": "1",
       "infoPlist": {
         "NSCameraUsageDescription": "ViaSetu needs camera access for capturing photos during file uploads.",
         "NSLocationWhenInUseUsageDescription": "ViaSetu uses your location for delivery tracking and logistics.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "ViaSetu uses your location for delivery tracking and logistics.",
         "NSMicrophoneUsageDescription": "ViaSetu needs microphone access for voice-related features.",
-        "NSPhotoLibraryUsageDescription": "ViaSetu needs access to your photo library for file uploads."
+        "NSPhotoLibraryUsageDescription": "ViaSetu needs access to your photo library for file uploads.",
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSUserTrackingUsageDescription": "ViaSetu uses this to deliver personalized notifications and improve your experience."
       }
     },
     "android": {
       "package": "com.viasetu.app",
-      "versionCode": 1,
+      "versionCode": 4,
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/icon.png",
-        "backgroundColor": "#1A56DB"
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#000000"
       },
+      "enableProguardInReleaseBuilds": true,
       "permissions": [
         "android.permission.INTERNET",
         "android.permission.ACCESS_NETWORK_STATE",
@@ -48,8 +53,7 @@
         "android.permission.READ_MEDIA_AUDIO",
         "android.permission.VIBRATE",
         "android.permission.RECEIVE_BOOT_COMPLETED"
-      ],
-      "googleServicesFile": null
+      ]
     },
     "web": {
       "favicon": "./assets/images/icon.png"
@@ -61,6 +65,7 @@
           "origin": "https://replit.com/"
         }
       ],
+      "./plugins/with-arm64-only",
       "expo-font",
       "expo-web-browser",
       [
@@ -71,26 +76,28 @@
         }
       ],
       [
-        "expo-notifications",
-        {
-          "icon": "./assets/images/icon.png",
-          "color": "#1A56DB",
-          "androidMode": "default",
-          "androidCollapsedTitle": "ViaSetu",
-          "iosDisplayInForeground": true
-        }
-      ],
-      [
         "expo-image-picker",
         {
           "photosPermission": "ViaSetu needs access to your photos for file uploads.",
           "cameraPermission": "ViaSetu needs camera access for capturing photos."
+        }
+      ],
+      [
+        "onesignal-expo-plugin",
+        {
+          "mode": "production"
         }
       ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "7479f57e-f0be-4824-9677-011748757d97"
+      }
+    },
+    "owner": "225986saurav"
   }
 }

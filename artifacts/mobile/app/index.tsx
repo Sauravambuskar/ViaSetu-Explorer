@@ -1,16 +1,12 @@
 import * as ImagePicker from "expo-image-picker";
 import { Image } from "expo-image";
 import * as Location from "expo-location";
-import * as Notifications from "expo-notifications";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   BackHandler,
-  Dimensions,
   Linking,
   Platform,
-  RefreshControl,
-  ScrollView,
   StatusBar,
   StyleSheet,
   Text,
@@ -18,16 +14,27 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { OneSignal, type NotificationClickEvent } from "react-native-onesignal";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
 import { SplashLoader } from "@/components/SplashLoader";
 
 const VIASETU_URL = "https://www.viasetu.com";
 const PRIMARY = "#1A56DB";
-const { height: SCREEN_HEIGHT } = Dimensions.get("window");
+const ONESIGNAL_APP_ID = "7e452beb-1be1-4bf5-8c02-89eaa326c072";
 const SPLASH_TIMEOUT_MS = 15000;
 
-const INJECTED_JS = `(function(){true;})();`;
+const INJECTED_JS = `
+(function(){
+  // Bridge: website can call window.ReactNativeWebView.postMessage(JSON.stringify({type, data}))
+  // The app listens via onMessage handler
+  window.addEventListener('message', function(e) {
+    if (window.ReactNativeWebView) {
+      window.ReactNativeWebView.postMessage(typeof e.data === 'string' ? e.data : JSON.stringify(e.data));
+    }
+  });
+})();
+`;
 
 // ─── Web fallback ────────────────────────────────────────────────────────────
 // react-native-webview has no web implementation; use a plain iframe in the
@@ -69,34 +76,51 @@ function NativeWebView() {
   const [canGoBack, setCanGoBack] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
-  const [hasError, setHasError] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [errorType, setErrorType] = useState<"none" | "no-internet" | "server-down">("none");
 
-  // ── Permissions + notification channel ──────────────────────────────────
+  // ── Permissions + push notifications (OneSignal) ────────────────────────
   useEffect(() => {
     requestPermissions();
-    setupNotificationChannel();
+    setupOneSignal();
   }, []);
 
   const requestPermissions = async () => {
     try { await Location.requestForegroundPermissionsAsync(); } catch {}
     try { await ImagePicker.requestCameraPermissionsAsync(); } catch {}
     try { await ImagePicker.requestMediaLibraryPermissionsAsync(); } catch {}
-    try { await Notifications.requestPermissionsAsync(); } catch {}
   };
 
-  const setupNotificationChannel = async () => {
-    if (Platform.OS !== "android") return;
-    try {
-      await Notifications.setNotificationChannelAsync("default", {
-        name: "ViaSetu Notifications",
-        importance: Notifications.AndroidImportance.HIGH,
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: PRIMARY,
-        sound: "default",
-        showBadge: true,
-      });
-    } catch {}
+  const setupOneSignal = () => {
+    OneSignal.initialize(ONESIGNAL_APP_ID);
+    OneSignal.Notifications.requestPermission(true);
+
+    // When a user taps a notification — deep link into the WebView
+    OneSignal.Notifications.addEventListener("click", (event: NotificationClickEvent) => {
+      const url = event.result?.url;
+      if (url && webViewRef.current) {
+        webViewRef.current.injectJavaScript(`window.location.href = '${url}';`);
+      }
+    });
+
+    const isRegistered = (subscriptionId: string | null | undefined) =>
+      !!subscriptionId && !subscriptionId.startsWith("local-");
+
+    const onSubscriptionId = (subscriptionId: string | null | undefined) => {
+      if (!isRegistered(subscriptionId)) return;
+      console.log("[ViaSetu] OneSignal subscription id:", subscriptionId);
+
+      // Inject the subscription id into the WebView so the website can use it
+      if (webViewRef.current) {
+        webViewRef.current.injectJavaScript(
+          `window.dispatchEvent(new CustomEvent('pushToken', { detail: '${subscriptionId}' }));`
+        );
+      }
+    };
+
+    OneSignal.User.pushSubscription.addEventListener("change", (subscription) => {
+      onSubscriptionId(subscription.current.id);
+    });
+    OneSignal.User.pushSubscription.getIdAsync().then(onSubscriptionId);
   };
 
   // ── Safety timeout: clear splash if WebView stalls ──────────────────────
@@ -131,8 +155,7 @@ function NativeWebView() {
 
   // ── Handlers ─────────────────────────────────────────────────────────────
   const handleRefresh = useCallback(() => {
-    setIsRefreshing(true);
-    setHasError(false);
+    setErrorType("none");
     setIsInitialLoad(false);
     webViewRef.current?.reload();
   }, []);
@@ -143,17 +166,26 @@ function NativeWebView() {
 
   const handleLoadEnd = useCallback(() => {
     setIsLoading(false);
-    setIsRefreshing(false);
-    setHasError(false);
+    setErrorType("none");
     setIsInitialLoad(false);
   }, []);
 
   const handleError = useCallback(() => {
     setIsLoading(false);
-    setIsRefreshing(false);
-    setHasError(true);
+    setErrorType("no-internet");
     setIsInitialLoad(false);
   }, []);
+
+  const handleHttpError = useCallback(
+    ({ nativeEvent }: { nativeEvent: { statusCode: number } }) => {
+      if (nativeEvent.statusCode >= 500) {
+        setIsLoading(false);
+        setErrorType("server-down");
+        setIsInitialLoad(false);
+      }
+    },
+    []
+  );
 
   const handleNavigationChange = useCallback(
     (navState: { canGoBack: boolean }) => {
@@ -164,13 +196,16 @@ function NativeWebView() {
 
   const handleShouldStartLoad = useCallback((request: { url: string }) => {
     const { url } = request;
-    if (
-      url.startsWith("about:") ||
-      url.startsWith("data:") ||
-      url.startsWith("blob:") ||
-      url.includes("viasetu.com")
-    ) {
+    if (url.startsWith("about:") || url.startsWith("data:") || url.startsWith("blob:")) {
       return true;
+    }
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+      try {
+        const hostname = new URL(url).hostname;
+        if (hostname === "viasetu.com" || hostname.endsWith(".viasetu.com")) {
+          return true;
+        }
+      } catch {}
     }
     if (
       url.startsWith("tel:") ||
@@ -197,26 +232,53 @@ function NativeWebView() {
   );
 
   // ── No-internet screen ───────────────────────────────────────────────────
-  if (hasError) {
+  if (errorType === "no-internet") {
     return (
       <View style={[styles.errorContainer, { paddingTop: insets.top }]}>
         <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
         <View style={styles.errorContent}>
           <Image
-            source={require("../assets/images/splash-icon.png")}
-            style={styles.errorLogo}
+            source={require("../assets/images/no-internet.png")}
+            style={styles.errorIllustration}
             contentFit="contain"
           />
           <Text style={styles.errorTitle}>No Internet Connection</Text>
           <Text style={styles.errorSubtitle}>
-            Please check your network settings and try again.
+            Please check your Wi-Fi or mobile data and try again.
           </Text>
           <TouchableOpacity
             style={styles.retryBtn}
             onPress={handleRefresh}
             activeOpacity={0.8}
           >
-            <Text style={styles.retryText}>Retry</Text>
+            <Text style={styles.retryText}>Try Again</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  // ── Server-down screen ───────────────────────────────────────────────────
+  if (errorType === "server-down") {
+    return (
+      <View style={[styles.errorContainer, { paddingTop: insets.top }]}>
+        <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+        <View style={styles.errorContent}>
+          <Image
+            source={require("../assets/images/server-down.png")}
+            style={styles.errorIllustration}
+            contentFit="contain"
+          />
+          <Text style={styles.errorTitle}>We'll Be Right Back</Text>
+          <Text style={styles.errorSubtitle}>
+            ViaSetu is currently undergoing maintenance. Please check back in a few minutes.
+          </Text>
+          <TouchableOpacity
+            style={styles.retryBtn}
+            onPress={handleRefresh}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.retryText}>Refresh</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -228,56 +290,49 @@ function NativeWebView() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
 
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        bounces={false}
-        overScrollMode="always"
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={handleRefresh}
-            colors={[PRIMARY]}
-            tintColor={PRIMARY}
-            progressBackgroundColor="#ffffff"
-          />
-        }
-      >
-        <WebView
-          ref={webViewRef}
-          source={{ uri: VIASETU_URL }}
-          style={{ height: SCREEN_HEIGHT - insets.top }}
-          javaScriptEnabled={true}
-          domStorageEnabled={true}
-          geolocationEnabled={true}
-          allowsInlineMediaPlayback={true}
-          allowFileAccess={true}
-          allowFileAccessFromFileURLs={true}
-          allowUniversalAccessFromFileURLs={true}
-          mixedContentMode="compatibility"
-          cacheEnabled={true}
-          thirdPartyCookiesEnabled={true}
-          sharedCookiesEnabled={true}
-          mediaPlaybackRequiresUserAction={false}
-          nestedScrollEnabled={true}
-          setSupportMultipleWindows={false}
-          injectedJavaScript={INJECTED_JS}
-          onLoadStart={handleLoadStart}
-          onLoadEnd={handleLoadEnd}
-          onError={handleError}
-          onNavigationStateChange={handleNavigationChange}
-          onShouldStartLoadWithRequest={handleShouldStartLoad}
-          onFileDownload={handleFileDownload}
-          userAgent="Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
-          renderToHardwareTextureAndroid={true}
-        />
-      </ScrollView>
+      <WebView
+        ref={webViewRef}
+        source={{ uri: VIASETU_URL }}
+        style={styles.webView}
+        javaScriptEnabled={true}
+        domStorageEnabled={true}
+        geolocationEnabled={true}
+        allowsInlineMediaPlayback={true}
+        allowFileAccess={true}
+        mixedContentMode="never"
+        cacheEnabled={true}
+        thirdPartyCookiesEnabled={true}
+        sharedCookiesEnabled={true}
+        mediaPlaybackRequiresUserAction={false}
+        nestedScrollEnabled={true}
+        setSupportMultipleWindows={false}
+        allowsBackForwardNavigationGestures={Platform.OS === "ios"}
+        injectedJavaScript={INJECTED_JS}
+        onLoadStart={handleLoadStart}
+        onLoadEnd={handleLoadEnd}
+        onError={handleError}
+        onNavigationStateChange={handleNavigationChange}
+        onShouldStartLoadWithRequest={handleShouldStartLoad}
+        onHttpError={handleHttpError}
+        onFileDownload={handleFileDownload}
+        onMessage={(event) => {
+          try {
+            const data = JSON.parse(event.nativeEvent.data);
+            console.log("[ViaSetu] Message from website:", data);
+            if (data.type === "share" && data.data?.url) {
+              // Could trigger native share sheet here
+            }
+          } catch {}
+        }}
+        userAgent="Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
+        renderToHardwareTextureAndroid={true}
+      />
 
       {/* Animated splash screen — fades out once WebView fires onLoadEnd */}
       <SplashLoader visible={isInitialLoad} />
 
       {/* Small activity indicator for subsequent page loads */}
-      {isLoading && !isInitialLoad && !isRefreshing && (
+      {isLoading && !isInitialLoad && (
         <View style={[styles.miniLoader, { pointerEvents: "none" }]}>
           <ActivityIndicator size="small" color={PRIMARY} />
         </View>
@@ -291,10 +346,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#ffffff",
   },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
+  webView: {
     flex: 1,
   },
   errorContainer: {
@@ -307,9 +359,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 40,
   },
-  errorLogo: {
-    width: 100,
-    height: 100,
+  errorIllustration: {
+    width: 260,
+    height: 260,
     marginBottom: 32,
   },
   errorTitle: {
