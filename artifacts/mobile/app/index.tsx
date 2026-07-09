@@ -14,7 +14,14 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { OneSignal, type NotificationClickEvent } from "react-native-onesignal";
+// OneSignal requires native modules — gracefully handle when running in Expo Go
+let OneSignal: typeof import("react-native-onesignal").OneSignal | null = null;
+type NotificationClickEvent = import("react-native-onesignal").NotificationClickEvent;
+try {
+  OneSignal = require("react-native-onesignal").OneSignal;
+} catch {
+  console.warn("[ViaSetu] OneSignal not available (Expo Go does not support native modules)");
+}
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
 import { SplashLoader } from "@/components/SplashLoader";
@@ -91,6 +98,8 @@ function NativeWebView() {
   };
 
   const setupOneSignal = () => {
+    if (!OneSignal) return; // Skip if running in Expo Go
+
     OneSignal.initialize(ONESIGNAL_APP_ID);
     OneSignal.Notifications.requestPermission(true);
 
