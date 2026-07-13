@@ -87,9 +87,24 @@ function NativeWebView() {
 
   // ── Permissions + push notifications (OneSignal) ────────────────────────
   useEffect(() => {
+    checkNetwork();
     requestPermissions();
     setupOneSignal();
   }, []);
+
+  // Check network on app launch — show offline screen immediately if no connection
+  const checkNetwork = async () => {
+    try {
+      const response = await fetch(VIASETU_URL, { method: "HEAD", cache: "no-cache" });
+      if (!response.ok) {
+        setErrorType("server-down");
+        setIsInitialLoad(false);
+      }
+    } catch {
+      setErrorType("no-internet");
+      setIsInitialLoad(false);
+    }
+  };
 
   const requestPermissions = async () => {
     try { await Location.requestForegroundPermissionsAsync(); } catch {}
@@ -243,26 +258,48 @@ function NativeWebView() {
   // ── No-internet screen ───────────────────────────────────────────────────
   if (errorType === "no-internet") {
     return (
-      <View style={[styles.errorContainer, { paddingTop: insets.top }]}>
+      <View style={[styles.offlineContainer, { paddingTop: insets.top }]}>
         <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
-        <View style={styles.errorContent}>
+
+        {/* Top brand */}
+        <View style={styles.offlineBrand}>
           <Image
-            source={require("../assets/images/no-internet.png")}
-            style={styles.errorIllustration}
+            source={require("../assets/images/viasetu-logo-nobg.png")}
+            style={styles.offlineLogo}
             contentFit="contain"
           />
-          <Text style={styles.errorTitle}>No Internet Connection</Text>
-          <Text style={styles.errorSubtitle}>
-            Please check your Wi-Fi or mobile data and try again.
-          </Text>
-          <TouchableOpacity
-            style={styles.retryBtn}
-            onPress={handleRefresh}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.retryText}>Try Again</Text>
-          </TouchableOpacity>
         </View>
+
+        {/* Illustration */}
+        <View style={styles.offlineIllustrationWrap}>
+          <Image
+            source={require("../assets/images/no-internet.png")}
+            style={styles.offlineIllustration}
+            contentFit="contain"
+          />
+        </View>
+
+        {/* Message card */}
+        <View style={styles.offlineCard}>
+          <Text style={styles.offlineCardTitle}>You're Offline</Text>
+          <Text style={styles.offlineCardSubtitle}>
+            Check your connection and{"\n"}we'll get you back online.
+          </Text>
+        </View>
+
+        {/* Retry button */}
+        <TouchableOpacity
+          style={styles.offlineRetryBtn}
+          onPress={handleRefresh}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.offlineRetryText}>Try Again</Text>
+        </TouchableOpacity>
+
+        {/* Bottom note */}
+        <Text style={styles.offlineFooter}>
+          Some features may be limited while offline.{"\n"}Connect to the internet to enjoy the{"\n"}full <Text style={styles.offlineFooterBrand}>ViaSetu</Text> experience.
+        </Text>
       </View>
     );
   }
@@ -358,6 +395,7 @@ const styles = StyleSheet.create({
   webView: {
     flex: 1,
   },
+  // ── Server-down screen (kept as is) ──
   errorContainer: {
     flex: 1,
     backgroundColor: "#ffffff",
@@ -401,6 +439,96 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontFamily: "Inter_600SemiBold",
   },
+  // ── Offline screen (matching design) ──
+  offlineContainer: {
+    flex: 1,
+    backgroundColor: "#ffffff",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingBottom: 32,
+    paddingHorizontal: 24,
+  },
+  offlineBrand: {
+    alignItems: "center",
+    paddingTop: 24,
+  },
+  offlineLogo: {
+    width: 140,
+    height: 44,
+  },
+  offlineIllustrationWrap: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
+    maxHeight: "45%",
+  },
+  offlineIllustration: {
+    width: "85%",
+    height: "100%",
+    maxWidth: 320,
+    maxHeight: 280,
+  },
+  offlineCard: {
+    backgroundColor: "#f0f9f6",
+    borderRadius: 16,
+    paddingVertical: 20,
+    paddingHorizontal: 24,
+    width: "100%",
+    maxWidth: 360,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#e0f2ed",
+    marginBottom: 20,
+  },
+  offlineCardTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#0a0a0a",
+    marginBottom: 8,
+    fontFamily: "Inter_700Bold",
+  },
+  offlineCardSubtitle: {
+    fontSize: 14,
+    color: "#6b7280",
+    textAlign: "center",
+    lineHeight: 20,
+    fontFamily: "Inter_400Regular",
+  },
+  offlineRetryBtn: {
+    backgroundColor: "#2ABFAD",
+    paddingVertical: 16,
+    paddingHorizontal: 56,
+    borderRadius: 28,
+    width: "100%",
+    maxWidth: 320,
+    alignItems: "center",
+    marginBottom: 24,
+    shadowColor: "#2ABFAD",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  offlineRetryText: {
+    color: "#ffffff",
+    fontSize: 17,
+    fontWeight: "700",
+    fontFamily: "Inter_700Bold",
+  },
+  offlineFooter: {
+    fontSize: 12,
+    color: "#9ca3af",
+    textAlign: "center",
+    lineHeight: 18,
+    fontFamily: "Inter_400Regular",
+  },
+  offlineFooterBrand: {
+    color: "#2ABFAD",
+    fontWeight: "600",
+    fontFamily: "Inter_600SemiBold",
+  },
+  // ── Mini loader ──
   miniLoader: {
     position: "absolute",
     top: 12,

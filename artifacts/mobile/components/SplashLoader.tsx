@@ -4,7 +4,6 @@ import {
   Animated,
   Easing,
   StyleSheet,
-  Text,
   View,
 } from "react-native";
 
