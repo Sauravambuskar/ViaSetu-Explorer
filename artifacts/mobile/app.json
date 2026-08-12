@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "ViaSetu",
-    "slug": "mobile",
+    "slug": "viasetu-production",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -95,9 +95,9 @@
     },
     "extra": {
       "eas": {
-        "projectId": "20198c6b-cab0-4116-b190-d3f874afa42d"
+        "projectId": "9b8b7cb6-9d3a-46c2-8e99-c97748397242"
       }
     },
-    "owner": "viasetuprod"
+    "owner": "viasetu-pvt-ltd"
   }
 }
