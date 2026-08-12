@@ -1,4 +1,3 @@
-import { Image } from "expo-image";
 import React, { useEffect, useRef } from "react";
 import {
   Animated,
@@ -121,7 +120,7 @@ export function SplashLoader({ visible }: SplashLoaderProps) {
       style={[styles.overlay, { opacity: overlayFade }]}
     >
       <View style={styles.center}>
-        {/* Logo card with subtle shadow */}
+        {/* Brand wordmark */}
         <Animated.View
           style={[
             styles.logoWrap,
@@ -131,11 +130,7 @@ export function SplashLoader({ visible }: SplashLoaderProps) {
             },
           ]}
         >
-          <Image
-            source={require("../assets/images/viasetu-logo-nobg.png")}
-            style={styles.logo}
-            contentFit="contain"
-          />
+          <Animated.Text style={styles.brandText}>ViaSetu</Animated.Text>
         </Animated.View>
 
         {/* Tagline */}
@@ -185,9 +180,11 @@ const styles = StyleSheet.create({
     elevation: 10,
     marginBottom: 32,
   },
-  logo: {
-    width: 220,
-    height: 72,
+  brandText: {
+    fontSize: 34,
+    fontFamily: "Inter_700Bold",
+    color: PRIMARY,
+    letterSpacing: 0.3,
   },
   tagline: {
     fontSize: 15,

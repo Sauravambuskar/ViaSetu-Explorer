@@ -263,11 +263,7 @@ function NativeWebView() {
 
         {/* Top brand */}
         <View style={styles.offlineBrand}>
-          <Image
-            source={require("../assets/images/viasetu-logo-nobg.png")}
-            style={styles.offlineLogo}
-            contentFit="contain"
-          />
+          <Text style={styles.offlineBrandText}>ViaSetu</Text>
         </View>
 
         {/* Illustration */}
@@ -452,9 +448,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingTop: 24,
   },
-  offlineLogo: {
-    width: 140,
-    height: 44,
+  offlineBrandText: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: PRIMARY,
+    fontFamily: "Inter_700Bold",
   },
   offlineIllustrationWrap: {
     flex: 1,
