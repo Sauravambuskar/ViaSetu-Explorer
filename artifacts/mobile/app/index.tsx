@@ -24,12 +24,10 @@ try {
 }
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
-import { SplashLoader } from "@/components/SplashLoader";
 
 const VIASETU_URL = "https://www.viasetu.com";
 const PRIMARY = "#1A56DB";
 const ONESIGNAL_APP_ID = "7e452beb-1be1-4bf5-8c02-89eaa326c072";
-const SPLASH_TIMEOUT_MS = 15000;
 
 const INJECTED_JS = `
 (function(){
@@ -82,7 +80,6 @@ function NativeWebView() {
 
   const [canGoBack, setCanGoBack] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [errorType, setErrorType] = useState<"none" | "no-internet" | "server-down">("none");
 
   // ── Permissions + push notifications (OneSignal) ────────────────────────
@@ -98,11 +95,9 @@ function NativeWebView() {
       const response = await fetch(VIASETU_URL, { method: "HEAD", cache: "no-cache" });
       if (!response.ok) {
         setErrorType("server-down");
-        setIsInitialLoad(false);
       }
     } catch {
       setErrorType("no-internet");
-      setIsInitialLoad(false);
     }
   };
 
@@ -147,14 +142,6 @@ function NativeWebView() {
     OneSignal.User.pushSubscription.getIdAsync().then(onSubscriptionId);
   };
 
-  // ── Safety timeout: clear splash if WebView stalls ──────────────────────
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsInitialLoad(false);
-    }, SPLASH_TIMEOUT_MS);
-    return () => clearTimeout(timer);
-  }, []);
-
   // ── Android hardware back button ─────────────────────────────────────────
   useEffect(() => {
     if (Platform.OS !== "android") return;
@@ -180,7 +167,6 @@ function NativeWebView() {
   // ── Handlers ─────────────────────────────────────────────────────────────
   const handleRefresh = useCallback(() => {
     setErrorType("none");
-    setIsInitialLoad(false);
     webViewRef.current?.reload();
   }, []);
 
@@ -191,13 +177,11 @@ function NativeWebView() {
   const handleLoadEnd = useCallback(() => {
     setIsLoading(false);
     setErrorType("none");
-    setIsInitialLoad(false);
   }, []);
 
   const handleError = useCallback(() => {
     setIsLoading(false);
     setErrorType("no-internet");
-    setIsInitialLoad(false);
   }, []);
 
   const handleHttpError = useCallback(
@@ -205,7 +189,6 @@ function NativeWebView() {
       if (nativeEvent.statusCode >= 500) {
         setIsLoading(false);
         setErrorType("server-down");
-        setIsInitialLoad(false);
       }
     },
     []
@@ -370,11 +353,8 @@ function NativeWebView() {
         renderToHardwareTextureAndroid={true}
       />
 
-      {/* Animated splash screen — fades out once WebView fires onLoadEnd */}
-      <SplashLoader visible={isInitialLoad} />
-
-      {/* Small activity indicator for subsequent page loads */}
-      {isLoading && !isInitialLoad && (
+      {/* Small activity indicator while the page loads */}
+      {isLoading && (
         <View style={[styles.miniLoader, { pointerEvents: "none" }]}>
           <ActivityIndicator size="small" color={PRIMARY} />
         </View>
