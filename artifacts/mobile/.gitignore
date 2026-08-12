@@ -34,9 +34,6 @@ yarn-error.*
 # local env files
 .env*.local
 
-# Firebase credentials
-google-services.json
-
 # typescript
 *.tsbuildinfo
 .vercel

@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "654013018836",
+    "project_id": "viasetu-41446",
+    "storage_bucket": "viasetu-41446.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:654013018836:android:402f563a94ceac07408141",
+        "android_client_info": {
+          "package_name": "com.viasetu.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "654013018836-gs0122bjvqh66bassarb6kiteaiud6dq.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC-r3t9463R02LUDlK8BzQLhKl-w9PKpyI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "654013018836-gs0122bjvqh66bassarb6kiteaiud6dq.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
