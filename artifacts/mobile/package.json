@@ -38,6 +38,7 @@
     "typescript": "~5.9.2"
   },
   "dependencies": {
+    "@sentry/react-native": "^8.22.0",
     "onesignal-expo-plugin": "^2.7.0",
     "react-native-onesignal": "^5.5.3",
     "react-native-webview": "^13.16.1"

@@ -12,6 +12,10 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { initSentry } from "./sentry.config";
+
+// Initialize Sentry for crash reporting
+initSentry();
 
 SplashScreen.preventAutoHideAsync();
 
