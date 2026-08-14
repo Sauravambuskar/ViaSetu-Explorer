@@ -1,0 +1,72 @@
+name: Build & Deploy to App Stores
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'artifacts/mobile/**'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch: # Manual trigger from GitHub UI
+
+jobs:
+  build-and-submit:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Type checking
+        run: pnpm run typecheck
+
+      - name: Build & Submit Android to Play Store
+        working-directory: artifacts/mobile
+        env:
+          EAS_TOKEN: ${{ secrets.EAS_TOKEN }}
+        run: |
+          npx eas-cli build --platform android --profile production --auto-submit
+
+      - name: Build & Submit iOS to App Store
+        working-directory: artifacts/mobile
+        env:
+          EAS_TOKEN: ${{ secrets.EAS_TOKEN }}
+        run: |
+          npx eas-cli build --platform ios --profile production --auto-submit
+
+      - name: Notify Success
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '✅ Build succeeded! App submitted to Play Store & App Store'
+            })
+
+      - name: Notify Failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '❌ Build failed! Check workflow logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}'
+            })
