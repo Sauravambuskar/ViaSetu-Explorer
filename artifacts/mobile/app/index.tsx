@@ -338,7 +338,7 @@ function NativeWebView() {
 
   // ── Main view ────────────────────────────────────────────────────────────
   return (
-    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
 
       <WebView
