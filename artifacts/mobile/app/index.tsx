@@ -38,6 +38,12 @@ const INJECTED_JS = `
       window.ReactNativeWebView.postMessage(typeof e.data === 'string' ? e.data : JSON.stringify(e.data));
     }
   });
+
+  // Block WebKit's native pinch-to-zoom gesture (Android zoom is disabled via
+  // the setBuiltInZoomControls WebView prop instead, since gesture events
+  // below are iOS/WebKit-only).
+  document.addEventListener('gesturestart', function (e) { e.preventDefault(); });
+  document.addEventListener('gesturechange', function (e) { e.preventDefault(); });
 })();
 `;
 
@@ -46,16 +52,22 @@ const INJECTED_JS = `
 // chat widget) clear of the iOS home indicator / Android gesture-nav area —
 // mirrors env(safe-area-inset-*) for the WebView runtimes that don't compute
 // it themselves (Android WebView does not derive nav-bar height from env()).
+// Also locks the viewport scale so pinch/double-tap zoom stays disabled
+// regardless of what the page's own viewport meta tag specifies.
 const safeAreaInjectedJS = (top: number, bottom: number) => `
 (function(){
   var root = document.documentElement;
   root.style.setProperty('--rn-safe-area-top', '${top}px');
   root.style.setProperty('--rn-safe-area-bottom', '${bottom}px');
-  if (!document.querySelector('meta[name="viewport"][content*="viewport-fit"]')) {
-    var meta = document.querySelector('meta[name="viewport"]');
-    if (meta) {
-      meta.setAttribute('content', meta.getAttribute('content') + ', viewport-fit=cover');
-    }
+  var meta = document.querySelector('meta[name="viewport"]');
+  var content = 'width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover';
+  if (meta) {
+    meta.setAttribute('content', content);
+  } else {
+    meta = document.createElement('meta');
+    meta.setAttribute('name', 'viewport');
+    meta.setAttribute('content', content);
+    document.head.appendChild(meta);
   }
 })();
 true;
@@ -357,6 +369,8 @@ function NativeWebView() {
         mediaPlaybackRequiresUserAction={false}
         nestedScrollEnabled={true}
         setSupportMultipleWindows={false}
+        setBuiltInZoomControls={false}
+        setDisplayZoomControls={false}
         allowsBackForwardNavigationGestures={Platform.OS === "ios"}
         injectedJavaScriptBeforeContentLoaded={safeAreaInjectedJS(insets.top, insets.bottom)}
         injectedJavaScript={INJECTED_JS}
