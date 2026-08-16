@@ -41,6 +41,26 @@ const INJECTED_JS = `
 })();
 `;
 
+// Exposes the native safe-area insets to the page as CSS custom properties so
+// the website's own stylesheet can keep fixed/floating elements (e.g. the
+// chat widget) clear of the iOS home indicator / Android gesture-nav area —
+// mirrors env(safe-area-inset-*) for the WebView runtimes that don't compute
+// it themselves (Android WebView does not derive nav-bar height from env()).
+const safeAreaInjectedJS = (top: number, bottom: number) => `
+(function(){
+  var root = document.documentElement;
+  root.style.setProperty('--rn-safe-area-top', '${top}px');
+  root.style.setProperty('--rn-safe-area-bottom', '${bottom}px');
+  if (!document.querySelector('meta[name="viewport"][content*="viewport-fit"]')) {
+    var meta = document.querySelector('meta[name="viewport"]');
+    if (meta) {
+      meta.setAttribute('content', meta.getAttribute('content') + ', viewport-fit=cover');
+    }
+  }
+})();
+true;
+`;
+
 // ─── Web fallback ────────────────────────────────────────────────────────────
 // react-native-webview has no web implementation; use a plain iframe in the
 // Expo web preview so the splash screen does not stay frozen forever.
@@ -88,6 +108,12 @@ function NativeWebView() {
     requestPermissions();
     setupOneSignal();
   }, []);
+
+  // Re-sync safe-area insets into the page whenever they change (e.g. rotation)
+  // so a fixed chat widget positioned via the injected CSS vars stays correct.
+  useEffect(() => {
+    webViewRef.current?.injectJavaScript(safeAreaInjectedJS(insets.top, insets.bottom));
+  }, [insets.top, insets.bottom]);
 
   // Check network on app launch — show offline screen immediately if no connection
   const checkNetwork = async () => {
@@ -312,7 +338,7 @@ function NativeWebView() {
 
   // ── Main view ────────────────────────────────────────────────────────────
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
 
       <WebView
@@ -332,6 +358,7 @@ function NativeWebView() {
         nestedScrollEnabled={true}
         setSupportMultipleWindows={false}
         allowsBackForwardNavigationGestures={Platform.OS === "ios"}
+        injectedJavaScriptBeforeContentLoaded={safeAreaInjectedJS(insets.top, insets.bottom)}
         injectedJavaScript={INJECTED_JS}
         onLoadStart={handleLoadStart}
         onLoadEnd={handleLoadEnd}
