@@ -24,8 +24,7 @@
         "NSLocationAlwaysAndWhenInUseUsageDescription": "ViaSetu uses your location for delivery tracking and logistics.",
         "NSMicrophoneUsageDescription": "ViaSetu needs microphone access for voice-related features.",
         "NSPhotoLibraryUsageDescription": "ViaSetu needs access to your photo library for file uploads.",
-        "ITSAppUsesNonExemptEncryption": false,
-        "NSUserTrackingUsageDescription": "ViaSetu uses this to deliver personalized notifications and improve your experience."
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
