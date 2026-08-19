@@ -19,16 +19,14 @@
       "bundleIdentifier": "com.viasetu.app",
       "buildNumber": "1",
       "infoPlist": {
-        "NSCameraUsageDescription": "ViaSetu needs camera access for capturing photos during file uploads.",
-        "NSLocationWhenInUseUsageDescription": "ViaSetu uses your location for delivery tracking and logistics.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "ViaSetu uses your location for delivery tracking and logistics.",
-        "NSPhotoLibraryUsageDescription": "ViaSetu needs access to your photo library for file uploads.",
+        "NSCameraUsageDescription": "ViaSetu uses your camera so you can photograph and attach a package or issue image when booking a shipment or contacting support.",
+        "NSLocationWhenInUseUsageDescription": "ViaSetu uses your location to auto-fill your pickup address and show accurate courier rates and delivery times for your area.",
+        "NSPhotoLibraryUsageDescription": "ViaSetu accesses your photo library so you can attach an existing photo, such as a package or ID image, when booking a shipment or contacting support.",
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
       "package": "com.viasetu.app",
-      "versionCode": 4,
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
@@ -63,8 +61,7 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "ViaSetu uses your location for delivery tracking and logistics.",
-          "locationWhenInUsePermission": "ViaSetu uses your location for delivery tracking and logistics."
+          "locationWhenInUsePermission": "ViaSetu uses your location to auto-fill your pickup address and show accurate courier rates and delivery times for your area."
         }
       ],
       [
