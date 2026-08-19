@@ -22,7 +22,6 @@
         "NSCameraUsageDescription": "ViaSetu needs camera access for capturing photos during file uploads.",
         "NSLocationWhenInUseUsageDescription": "ViaSetu uses your location for delivery tracking and logistics.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "ViaSetu uses your location for delivery tracking and logistics.",
-        "NSMicrophoneUsageDescription": "ViaSetu needs microphone access for voice-related features.",
         "NSPhotoLibraryUsageDescription": "ViaSetu needs access to your photo library for file uploads.",
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -43,11 +42,9 @@
         "android.permission.CAMERA",
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.RECORD_AUDIO",
         "android.permission.POST_NOTIFICATIONS",
         "android.permission.DOWNLOAD_WITHOUT_NOTIFICATION",
-        "android.permission.VIBRATE",
-        "android.permission.RECEIVE_BOOT_COMPLETED"
+        "android.permission.VIBRATE"
       ]
     },
     "web": {
