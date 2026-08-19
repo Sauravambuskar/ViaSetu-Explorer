@@ -1,4 +1,3 @@
-import * as ImagePicker from "expo-image-picker";
 import { Image } from "expo-image";
 import * as Location from "expo-location";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -141,8 +140,9 @@ function NativeWebView() {
 
   const requestPermissions = async () => {
     try { await Location.requestForegroundPermissionsAsync(); } catch {}
-    try { await ImagePicker.requestCameraPermissionsAsync(); } catch {}
-    try { await ImagePicker.requestMediaLibraryPermissionsAsync(); } catch {}
+    // Camera/photo access for WebView file-upload inputs is granted by the OS
+    // at the point of use (native file chooser / system photo picker), so no
+    // upfront priming or app-held media library permission is needed here.
   };
 
   const setupOneSignal = () => {

@@ -27,5 +27,8 @@
         "appleTeamId": "96284SXU3T"
       }
     }
+  },
+  "cli": {
+    "appVersionSource": "remote"
   }
 }
