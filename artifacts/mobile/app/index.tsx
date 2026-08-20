@@ -171,7 +171,7 @@ function NativeWebView() {
     OneSignal.Notifications.addEventListener("click", (event: NotificationClickEvent) => {
       const url = event.result?.url;
       if (url && webViewRef.current) {
-        webViewRef.current.injectJavaScript(`window.location.href = '${url}';`);
+        webViewRef.current.injectJavaScript(`window.location.href = ${JSON.stringify(url)}; true;`);
       }
     });
 
@@ -185,7 +185,7 @@ function NativeWebView() {
       // Inject the subscription id into the WebView so the website can use it
       if (webViewRef.current) {
         webViewRef.current.injectJavaScript(
-          `window.dispatchEvent(new CustomEvent('pushToken', { detail: '${subscriptionId}' }));`
+          `window.dispatchEvent(new CustomEvent('pushToken', { detail: ${JSON.stringify(subscriptionId)} })); true;`
         );
       }
     };
@@ -427,7 +427,6 @@ function NativeWebView() {
             }
           } catch {}
         }}
-        userAgent="Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
         renderToHardwareTextureAndroid={true}
       />
 
