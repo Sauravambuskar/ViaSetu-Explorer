@@ -28,6 +28,34 @@ const VIASETU_URL = "https://www.viasetu.com";
 const PRIMARY = "#1A56DB";
 const ONESIGNAL_APP_ID = "7e452beb-1be1-4bf5-8c02-89eaa326c072";
 
+// Pins the page to a fixed scale so the app never behaves like a zoomable web
+// page. Applied both before and after content load: the pre-load pass covers
+// early paint, but a viewport meta tag in the page's own HTML is parsed after
+// that and would otherwise win, so the post-load pass re-asserts it.
+// touch-action backs this up on WebKit, which ignores user-scalable=no in some
+// versions but still honours the CSS.
+const ZOOM_LOCK_JS = `
+(function(){
+  var content = 'width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover';
+  var meta = document.querySelector('meta[name="viewport"]');
+  if (meta) {
+    meta.setAttribute('content', content);
+  } else if (document.head) {
+    meta = document.createElement('meta');
+    meta.setAttribute('name', 'viewport');
+    meta.setAttribute('content', content);
+    document.head.appendChild(meta);
+  }
+
+  if (document.head && !document.getElementById('rn-zoom-lock')) {
+    var style = document.createElement('style');
+    style.id = 'rn-zoom-lock';
+    style.textContent = 'html{touch-action:pan-x pan-y;-webkit-text-size-adjust:100%;}';
+    document.head.appendChild(style);
+  }
+})();
+`;
+
 const INJECTED_JS = `
 (function(){
   // Bridge: website can call window.ReactNativeWebView.postMessage(JSON.stringify({type, data}))
@@ -51,23 +79,11 @@ const INJECTED_JS = `
 // chat widget) clear of the iOS home indicator / Android gesture-nav area —
 // mirrors env(safe-area-inset-*) for the WebView runtimes that don't compute
 // it themselves (Android WebView does not derive nav-bar height from env()).
-// Also locks the viewport scale so pinch/double-tap zoom stays disabled
-// regardless of what the page's own viewport meta tag specifies.
 const safeAreaInjectedJS = (top: number, bottom: number) => `
 (function(){
   var root = document.documentElement;
   root.style.setProperty('--rn-safe-area-top', '${top}px');
   root.style.setProperty('--rn-safe-area-bottom', '${bottom}px');
-  var meta = document.querySelector('meta[name="viewport"]');
-  var content = 'width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover';
-  if (meta) {
-    meta.setAttribute('content', content);
-  } else {
-    meta = document.createElement('meta');
-    meta.setAttribute('name', 'viewport');
-    meta.setAttribute('content', content);
-    document.head.appendChild(meta);
-  }
 })();
 true;
 `;
@@ -372,8 +388,12 @@ function NativeWebView() {
         setBuiltInZoomControls={false}
         setDisplayZoomControls={false}
         allowsBackForwardNavigationGestures={Platform.OS === "ios"}
-        injectedJavaScriptBeforeContentLoaded={safeAreaInjectedJS(insets.top, insets.bottom)}
-        injectedJavaScript={INJECTED_JS}
+        injectedJavaScriptBeforeContentLoaded={
+          ZOOM_LOCK_JS + safeAreaInjectedJS(insets.top, insets.bottom)
+        }
+        injectedJavaScript={
+          ZOOM_LOCK_JS + INJECTED_JS + safeAreaInjectedJS(insets.top, insets.bottom)
+        }
         onLoadStart={handleLoadStart}
         onLoadEnd={handleLoadEnd}
         onError={handleError}

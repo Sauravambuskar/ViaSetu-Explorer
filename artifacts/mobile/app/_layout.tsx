@@ -19,6 +19,11 @@ initSentry();
 
 SplashScreen.preventAutoHideAsync();
 
+// Keep the splash up for a minimum beat so the brand mark is actually seen —
+// fonts usually resolve in well under this, which would otherwise flash it away.
+const SPLASH_MIN_DURATION_MS = 3000;
+const appLaunchedAt = Date.now();
+
 function RootLayoutNav() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
@@ -36,9 +41,14 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
-    if (fontsLoaded || fontError) {
-      SplashScreen.hideAsync();
-    }
+    if (!fontsLoaded && !fontError) return;
+
+    const elapsed = Date.now() - appLaunchedAt;
+    const timer = setTimeout(() => {
+      SplashScreen.hideAsync().catch(() => {});
+    }, Math.max(0, SPLASH_MIN_DURATION_MS - elapsed));
+
+    return () => clearTimeout(timer);
   }, [fontsLoaded, fontError]);
 
   if (!fontsLoaded && !fontError) return null;
