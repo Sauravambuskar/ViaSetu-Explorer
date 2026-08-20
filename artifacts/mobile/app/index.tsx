@@ -257,31 +257,46 @@ function NativeWebView() {
 
   const handleShouldStartLoad = useCallback((request: { url: string }) => {
     const { url } = request;
-    if (url.startsWith("about:") || url.startsWith("data:") || url.startsWith("blob:")) {
+    // Regular web navigation (viasetu.com, payment gateway checkout pages,
+    // bank OTP/3-D Secure pages, etc.) all stay inside the WebView so the
+    // payment flow can complete and redirect back to us. Only hand off
+    // schemes that a WebView can never render itself.
+    if (url.startsWith("http://") || url.startsWith("https://")) {
       return true;
     }
-    if (url.startsWith("http://") || url.startsWith("https://")) {
-      try {
-        const hostname = new URL(url).hostname;
-        if (hostname === "viasetu.com" || hostname.endsWith(".viasetu.com")) {
-          return true;
-        }
-      } catch {}
+    if (url.startsWith("about:") || url.startsWith("data:") || url.startsWith("blob:")) {
+      return true;
     }
     if (
       url.startsWith("tel:") ||
       url.startsWith("mailto:") ||
-      url.startsWith("whatsapp:")
+      url.startsWith("whatsapp:") ||
+      url.startsWith("upi:") ||
+      url.startsWith("intent:")
     ) {
       Linking.openURL(url).catch(() => {});
       return false;
     }
-    if (url.startsWith("http://") || url.startsWith("https://")) {
-      Linking.openURL(url).catch(() => {});
-      return false;
-    }
-    return true;
+    // Anything else with a custom scheme is most likely a UPI app deep link
+    // (phonepe://, tez://, paytmmp://, credpay:// ...) triggered by the
+    // payment gateway — hand it to the OS so the relevant app can open.
+    Linking.openURL(url).catch(() => {});
+    return false;
   }, []);
+
+  const handleOpenWindow = useCallback(
+    ({ nativeEvent }: { nativeEvent: { targetUrl: string } }) => {
+      // Some payment gateways open their checkout/OTP step via window.open()
+      // instead of a normal navigation. WKWebView drops these silently
+      // without an explicit handler, so route it back into the same WebView.
+      if (nativeEvent?.targetUrl) {
+        webViewRef.current?.injectJavaScript(
+          `window.location.href = ${JSON.stringify(nativeEvent.targetUrl)}; true;`
+        );
+      }
+    },
+    []
+  );
 
   const handleFileDownload = useCallback(
     ({ nativeEvent }: { nativeEvent: { downloadUrl: string } }) => {
@@ -385,6 +400,8 @@ function NativeWebView() {
         mediaPlaybackRequiresUserAction={false}
         nestedScrollEnabled={true}
         setSupportMultipleWindows={false}
+        javaScriptCanOpenWindowsAutomatically={true}
+        onOpenWindow={handleOpenWindow}
         setBuiltInZoomControls={false}
         setDisplayZoomControls={false}
         allowsBackForwardNavigationGestures={Platform.OS === "ios"}
