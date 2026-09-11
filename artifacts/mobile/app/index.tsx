@@ -13,20 +13,17 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-// OneSignal requires native modules — gracefully handle when running in Expo Go
-let OneSignal: typeof import("react-native-onesignal").OneSignal | null = null;
-type NotificationClickEvent = import("react-native-onesignal").NotificationClickEvent;
-try {
-  OneSignal = require("react-native-onesignal").OneSignal;
-} catch {
-  console.warn("[ViaSetu] OneSignal not available (Expo Go does not support native modules)");
-}
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
 
+import {
+  onNotificationUrl,
+  onPushSubscriptionId,
+  requestNotificationPermission,
+} from "./onesignal";
+
 const VIASETU_URL = "https://www.viasetu.com";
 const PRIMARY = "#1A56DB";
-const ONESIGNAL_APP_ID = "7e452beb-1be1-4bf5-8c02-89eaa326c072";
 
 // Pins the page to a fixed scale so the app never behaves like a zoomable web
 // page. Applied both before and after content load: the pre-load pass covers
@@ -133,8 +130,32 @@ function NativeWebView() {
   useEffect(() => {
     checkNetwork();
     requestPermissions();
-    setupOneSignal();
   }, []);
+
+  // Deep link from a notification tap — handled at app level (see ./onesignal)
+  // so a cold-start tap isn't lost, and replayed here once the WebView exists.
+  useEffect(
+    () =>
+      onNotificationUrl((url) => {
+        webViewRef.current?.injectJavaScript(
+          `window.location.href = ${JSON.stringify(url)}; true;`
+        );
+      }),
+    []
+  );
+
+  // Hand the push subscription id to the website so it can target this device
+  useEffect(
+    () =>
+      onPushSubscriptionId((subscriptionId) => {
+        webViewRef.current?.injectJavaScript(
+          `window.dispatchEvent(new CustomEvent('pushToken', { detail: ${JSON.stringify(
+            subscriptionId
+          )} })); true;`
+        );
+      }),
+    []
+  );
 
   // Re-sync safe-area insets into the page whenever they change (e.g. rotation)
   // so a fixed chat widget positioned via the injected CSS vars stays correct.
@@ -155,45 +176,17 @@ function NativeWebView() {
   };
 
   const requestPermissions = async () => {
+    // These must be sequential, not concurrent. iOS presents one system alert
+    // at a time and silently discards a permission request made while another
+    // prompt is still on screen — so firing both at mount meant the push
+    // prompt was never shown, the device never registered with APNs, and
+    // notifications simply never arrived. Android queues them, which is why
+    // this only ever broke on iOS.
     try { await Location.requestForegroundPermissionsAsync(); } catch {}
+    await requestNotificationPermission();
     // Camera/photo access for WebView file-upload inputs is granted by the OS
     // at the point of use (native file chooser / system photo picker), so no
     // upfront priming or app-held media library permission is needed here.
-  };
-
-  const setupOneSignal = () => {
-    if (!OneSignal) return; // Skip if running in Expo Go
-
-    OneSignal.initialize(ONESIGNAL_APP_ID);
-    OneSignal.Notifications.requestPermission(true);
-
-    // When a user taps a notification — deep link into the WebView
-    OneSignal.Notifications.addEventListener("click", (event: NotificationClickEvent) => {
-      const url = event.result?.url;
-      if (url && webViewRef.current) {
-        webViewRef.current.injectJavaScript(`window.location.href = ${JSON.stringify(url)}; true;`);
-      }
-    });
-
-    const isRegistered = (subscriptionId: string | null | undefined) =>
-      !!subscriptionId && !subscriptionId.startsWith("local-");
-
-    const onSubscriptionId = (subscriptionId: string | null | undefined) => {
-      if (!isRegistered(subscriptionId)) return;
-      console.log("[ViaSetu] OneSignal subscription id:", subscriptionId);
-
-      // Inject the subscription id into the WebView so the website can use it
-      if (webViewRef.current) {
-        webViewRef.current.injectJavaScript(
-          `window.dispatchEvent(new CustomEvent('pushToken', { detail: ${JSON.stringify(subscriptionId)} })); true;`
-        );
-      }
-    };
-
-    OneSignal.User.pushSubscription.addEventListener("change", (subscription) => {
-      onSubscriptionId(subscription.current.id);
-    });
-    OneSignal.User.pushSubscription.getIdAsync().then(onSubscriptionId);
   };
 
   // ── Android hardware back button ─────────────────────────────────────────

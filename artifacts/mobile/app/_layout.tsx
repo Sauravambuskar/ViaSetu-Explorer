@@ -12,10 +12,15 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { initOneSignal } from "./onesignal";
 import { initSentry } from "./sentry.config";
 
 // Initialize Sentry for crash reporting
 initSentry();
+
+// Register push handling before any screen mounts, so a notification tap that
+// cold-launches the app still reaches its deep-link handler.
+initOneSignal();
 
 SplashScreen.preventAutoHideAsync();
 
