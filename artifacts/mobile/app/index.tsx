@@ -3,6 +3,7 @@ import * as Location from "expo-location";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  AppState,
   BackHandler,
   Linking,
   Platform,
@@ -24,6 +25,22 @@ import {
 
 const VIASETU_URL = "https://www.viasetu.com";
 const PRIMARY = "#1A56DB";
+
+/**
+ * Hands a non-web URL (UPI app deep link, tel:, mailto: ...) to the OS.
+ *
+ * Failures are surfaced rather than swallowed: when a UPI app link doesn't
+ * open, the user otherwise just sees nothing happen with no way to tell
+ * whether the app is missing or the link was malformed.
+ */
+const openExternalUrl = (url: string) => {
+  Linking.openURL(url).catch((error) => {
+    console.warn("[ViaSetu] Could not open external URL:", url, error);
+    if (Platform.OS === "android") {
+      ToastAndroid.show("Could not open the requested app", ToastAndroid.SHORT);
+    }
+  });
+};
 
 // Pins the page to a fixed scale so the app never behaves like a zoomable web
 // page. Applied both before and after content load: the pre-load pass covers
@@ -130,6 +147,39 @@ function NativeWebView() {
   useEffect(() => {
     checkNetwork();
     requestPermissions();
+  }, []);
+
+  // ── Returning from a payment app (UPI / bank) ────────────────────────────
+  // A UPI app sends the user back via our "viasetu://" scheme. Route whatever
+  // path it returns with into the WebView so the site lands on its own payment
+  // status/callback page instead of sitting on the stale checkout screen.
+  useEffect(() => {
+    const openReturnUrl = (incoming: string | null) => {
+      if (!incoming || !incoming.startsWith("viasetu://")) return;
+      const path = incoming.replace(/^viasetu:\/\//, "");
+      const target = path ? `${VIASETU_URL}/${path.replace(/^\/+/, "")}` : VIASETU_URL;
+      webViewRef.current?.injectJavaScript(
+        `window.location.href = ${JSON.stringify(target)}; true;`
+      );
+    };
+
+    Linking.getInitialURL().then(openReturnUrl).catch(() => {});
+    const subscription = Linking.addEventListener("url", ({ url }) => openReturnUrl(url));
+    return () => subscription.remove();
+  }, []);
+
+  // Many UPI apps on iOS never hand control back to the calling app — the user
+  // simply switches back manually, leaving the checkout page frozen on
+  // "waiting for payment". Tell the page each time we return to the foreground
+  // so it can re-check payment status instead of hanging.
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state !== "active") return;
+      webViewRef.current?.injectJavaScript(
+        `window.dispatchEvent(new Event('appResumed')); true;`
+      );
+    });
+    return () => subscription.remove();
   }, []);
 
   // Deep link from a notification tap — handled at app level (see ./onesignal)
@@ -267,13 +317,13 @@ function NativeWebView() {
       url.startsWith("upi:") ||
       url.startsWith("intent:")
     ) {
-      Linking.openURL(url).catch(() => {});
+      openExternalUrl(url);
       return false;
     }
     // Anything else with a custom scheme is most likely a UPI app deep link
     // (phonepe://, tez://, paytmmp://, credpay:// ...) triggered by the
     // payment gateway — hand it to the OS so the relevant app can open.
-    Linking.openURL(url).catch(() => {});
+    openExternalUrl(url);
     return false;
   }, []);
 

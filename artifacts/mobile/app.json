@@ -22,7 +22,24 @@
         "NSLocationWhenInUseUsageDescription": "ViaSetu uses your location to auto-fill your pickup address and show accurate courier rates and delivery times for your area.",
         "NSPhotoLibraryUsageDescription": "ViaSetu accesses your photo library so you can attach an existing photo, such as a package or ID image, when booking a shipment or contacting support.",
         "ITSAppUsesNonExemptEncryption": false,
-        "UIBackgroundModes": ["remote-notification"]
+        "UIBackgroundModes": ["remote-notification"],
+        "LSApplicationQueriesSchemes": [
+          "upi",
+          "phonepe",
+          "tez",
+          "gpay",
+          "paytm",
+          "paytmmp",
+          "bhim",
+          "credpay",
+          "amazonpay",
+          "mobikwik",
+          "freecharge",
+          "payzapp",
+          "imobile",
+          "myairtel",
+          "whatsapp"
+        ]
       }
     },
     "android": {
