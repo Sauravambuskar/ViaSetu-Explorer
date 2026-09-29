@@ -2,7 +2,7 @@
   "expo": {
     "name": "ViaSetu",
     "slug": "viasetu-production",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "viasetu",
@@ -16,7 +16,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.viasetu.app",
-      "buildNumber": "1",
+      "buildNumber": "14",
       "infoPlist": {
         "NSCameraUsageDescription": "ViaSetu uses your camera so you can photograph and attach a package or issue image when booking a shipment or contacting support.",
         "NSLocationWhenInUseUsageDescription": "ViaSetu uses your location to auto-fill your pickup address and show accurate courier rates and delivery times for your area.",

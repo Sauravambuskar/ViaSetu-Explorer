@@ -9,6 +9,13 @@
         "simulator": true
       }
     },
+    "internal": {
+      "environment": "preview",
+      "distribution": "internal",
+      "ios": {
+        "autoIncrement": true
+      }
+    },
     "production": {
       "environment": "production",
       "android": {

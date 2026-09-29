@@ -5,6 +5,7 @@ dist
 tmp
 out-tsc
 *.tsbuildinfo
+*.ipa
 .expo
 .expo-shared
 
