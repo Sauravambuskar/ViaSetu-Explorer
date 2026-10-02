@@ -41,11 +41,12 @@ Store name/subtitle/keywords can only change together with a new version.
 - iOS push: fixed in commit 7f3a43a (permission prompts must be awaited one after another; OneSignal init runs in `_layout`; `remote-notification` background mode). Don't request the location and push permissions at the same time. The OneSignal dashboard must have the APNs .p8 key set (not in code).
 
 ## App Store listing (current target)
-- Title: `ViaSetu: Multi Courier` · Subtitle: `Compare Rates & Ship`
+- Title: `ViaSetu: Multi Courier App` · Subtitle: `Compare Rates & Ship`
 - Keywords: `shipping,parcel,delivery,tracking,pickup,booking,logistics,cod,ecommerce,dispatch,awb,cheap,send`
 
 ## Current state
-- Version **1.0.2 (build 15)** built OK 2026-09-25; iOS submission queued on EAS. Pending (manual): create 1.0.2 in ASC, set new title/subtitle/keywords, select build 15, submit.
+- Version **1.0.3** building on EAS (2026-10-02). Title correction: "ViaSetu: Multi Courier App". Pending (manual): create 1.0.3 in ASC, set corrected title, select new build, submit.
 
 ## Change log (newest last, one line each)
 - 2026-09-25 — Bumped 1.0.1→1.0.2 for App Store title/subtitle/keyword change; iOS build 15 + auto-submit started.
+- 2026-10-02 — Bumped 1.0.2→1.0.3; title fix "Multi Courier" → "Multi Courier App"; new iOS build + auto-submit.
